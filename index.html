@@ -1180,6 +1180,142 @@
     .logout-btn:active {
       transform: translateY(0);
     }
+
+   /* ===== NOTEPAD ===== */
+.notepad-section {
+  grid-column: 1 / -1;
+  width: 100%;
+  margin-top: 8px;
+  animation: fadeInUp 0.8s ease-out 0.4s both;
+}
+
+.notepad-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 24px;
+  transition: all 0.3s ease;
+  width: 100%;
+}
+
+.notepad-card:hover {
+  border-color: rgba(59,130,246,0.2);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+.notepad-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  width: 100%;
+}
+
+.notepad-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  color: var(--text-muted);
+}
+
+.notepad-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.notepad-btn {
+  padding: 8px 14px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.notepad-btn:hover {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: rgba(59,130,246,0.08);
+  transform: translateY(-1px);
+}
+
+.notepad-btn.danger:hover {
+  border-color: var(--accent-red);
+  color: var(--accent-red);
+  background: rgba(239,68,68,0.08);
+}
+
+.notepad-textarea {
+  width: 100%;
+  height: 45vh;
+  min-height: 480px;
+  max-height: 70vh;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+  color: var(--text);
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.7;
+  resize: vertical;
+  outline: none;
+  transition: all 0.25s ease;
+  box-sizing: border-box;
+}-sizing: border-box;
+}
+
+.notepad-textarea:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--glow-blue), 0 0 20px rgba(59,130,246,0.1);
+}
+
+.notepad-textarea::placeholder {
+  color: var(--text-muted);
+}
+
+.notepad-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  width: 100%;
+}
+
+.notepad-char-count {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+}
+
+.notepad-saved {
+  color: var(--accent-green);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.notepad-saved.show {
+  opacity: 1;
+}
+
+@media (max-width: 640px) {
+  .notepad-textarea {
+    height: 40vh;
+    min-height: 360px;
+    max-height: 60vh;
+    padding: 14px 16px;
+    font-size: 0.9rem;
+  }
+
 </style>
 <base target="_blank">
 <base target="_blank">
@@ -1433,7 +1569,7 @@
         </div>
       </div>
 
-      <!-- Live Trend Card -->
+     <!-- Live Trend Card -->
       <!-- <div class="card">
         <div class="card-header">
           <span class="card-title">Live Trend</span>
@@ -1441,6 +1577,33 @@
         </div>
         <div class="mini-chart" id="miniChart"></div>
       </div> -->
+    </div>  <!-- CLOSE .right-col HERE -->
+
+
+    <!-- Notepad Section — FULL WIDTH -->
+    <div class="notepad-section">
+      <div class="notepad-card">
+        <div class="notepad-header">
+          <span class="notepad-title">📝 Notepad</span>
+          <div class="notepad-actions">
+            <button class="notepad-btn" onclick="copyNotepad()" title="Copy to clipboard">📋 Copy</button>
+            <button class="notepad-btn" onclick="downloadNotepad()" title="Download as .txt">💾 Save</button>
+            <button class="notepad-btn danger" onclick="clearNotepad()" title="Clear all notes">🗑️ Clear</button>
+          </div>
+        </div>
+        <textarea 
+          class="notepad-textarea" 
+          id="notepad" 
+          placeholder="Type your shift notes here...&#10;&#10;• Follow-up items&#10;• Customer issues&#10;• Team reminders&#10;• Anything important"
+        ></textarea>
+        <div class="notepad-footer">
+          <span class="notepad-char-count" id="charCount">0 chars</span>
+          <span class="notepad-saved" id="saveIndicator">✅ Auto-saved</span>
+        </div>
+      </div>
+    </div>
+
+  </div>  <!-- CLOSE .app HERE -->
 
   <script>
     // ===== PARTICLES =====
@@ -2116,6 +2279,77 @@ document.querySelector('.orb-3').className = 'bg-orb orb-3 orb-' + (status || 's
       checkRestore();
       render();
     }
+
+        // ===== NOTEPAD =====
+    const NOTEPAD_KEY = 'callQualityTracker_notepad';
+    const notepad = document.getElementById('notepad');
+    const charCount = document.getElementById('charCount');
+    const saveIndicator = document.getElementById('saveIndicator');
+    let saveTimeout;
+
+    function loadNotepad() {
+      const saved = localStorage.getItem(NOTEPAD_KEY);
+      if (saved) notepad.value = saved;
+      updateCharCount();
+    }
+
+    function saveNotepad() {
+      localStorage.setItem(NOTEPAD_KEY, notepad.value);
+      saveIndicator.classList.add('show');
+      setTimeout(() => saveIndicator.classList.remove('show'), 2000);
+    }
+
+    function updateCharCount() {
+      const len = notepad.value.length;
+      charCount.textContent = len + ' char' + (len !== 1 ? 's' : '');
+    }
+
+    function copyNotepad() {
+      notepad.select();
+      document.execCommand('copy');
+      window.getSelection().removeAllRanges();
+      saveIndicator.textContent = '📋 Copied!';
+      saveIndicator.classList.add('show');
+      setTimeout(() => {
+        saveIndicator.classList.remove('show');
+        setTimeout(() => saveIndicator.textContent = '✅ Auto-saved', 300);
+      }, 2000);
+    }
+
+    function downloadNotepad() {
+      const blob = new Blob([notepad.value || '(empty)'], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const date = new Date().toISOString().split('T')[0];
+      a.download = 'shift-notes-' + date + '.txt';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function clearNotepad() {
+      if (notepad.value.length === 0) return;
+      if (confirm('Clear all notes? This cannot be undone.')) {
+        notepad.value = '';
+        localStorage.removeItem(NOTEPAD_KEY);
+        updateCharCount();
+        saveIndicator.textContent = '🗑️ Cleared';
+        saveIndicator.classList.add('show');
+        setTimeout(() => {
+          saveIndicator.classList.remove('show');
+          setTimeout(() => saveIndicator.textContent = '✅ Auto-saved', 300);
+        }, 2000);
+      }
+    }
+
+    notepad.addEventListener('input', () => {
+      updateCharCount();
+      clearTimeout(saveTimeout);
+      saveTimeout = setTimeout(saveNotepad, 800);
+    });
+
+    // Load on init
+    loadNotepad();
   </script>
 </body>
 </html>
